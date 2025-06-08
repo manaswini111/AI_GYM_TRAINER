@@ -1,18 +1,5 @@
-def get_diet_recommendation(goal, preference):
-    if goal.lower() == 'weight loss':
-        if preference.lower() == 'veg':
-            return "Low-calorie veggies, oats, and lentils"
-        else:
-            return "Egg whites, chicken breast, veggies"
-    elif goal.lower() == 'muscle gain':
-        if preference.lower() == 'veg':
-            return "Tofu, soy, peanut butter, paneer"
-        else:
-            return "Chicken, fish, eggs, milk"
-    else:
-        return "Drink plenty of water, eat balanced food"
+# diet_chatbot.py
 
-# Example use
-goal = input("What is your goal (weight loss/muscle gain)? ")
-preference = input("Veg or Non-Veg? ")
-print(get_diet_recommendation(goal, preference))
+def get_diet_plan(goal, food_type):
+    # Simple fake logic for now
+    return f"Based on your goal: **{goal}** and preference: **{food_type}**, here’s a basic diet:\n\n✅ Breakfast: Oats with fruits\n✅ Lunch: Grilled vegetables and protein\n✅ Dinner: Light salad\n💧 Stay hydrated!"

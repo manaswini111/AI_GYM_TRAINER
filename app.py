@@ -1,19 +1,15 @@
 import streamlit as st
-from diet_chatbot import get_diet_recommendation
+from diet_chatbot import get_diet_plan  # You’ll create this file too
 
-st.title("🏋️‍♀️ AI Gym Trainer & Diet Advisor")
+st.title("🥗 AI Diet Chatbot")
+st.write("Describe your fitness goal and food preference.")
 
-# Chatbot Section
-st.header("💬 Diet Suggestion Bot")
-goal = st.text_input("Your Goal (weight loss/muscle gain)")
-preference = st.radio("Diet Preference", ['Veg', 'Non-Veg'])
+goal = st.text_input("🎯 Your Goal (e.g., weight loss, muscle gain)")
+food_type = st.text_input("🍽️ Food Type (e.g., veg, high protein)")
 
-if st.button("Get Diet Plan"):
-    if goal:
-        st.success(get_diet_recommendation(goal, preference))
+if st.button("Get My Diet Plan"):
+    if goal and food_type:
+        plan = get_diet_plan(goal, food_type)
+        st.success(plan)
     else:
-        st.warning("Enter your goal!")
-
-# Pose detection note
-st.header("📹 Pose Detection")
-st.write("Run `pose_detector.py` in terminal for live feedback using webcam.")
+        st.warning("Please fill out both fields.")
