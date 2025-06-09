@@ -1,49 +1,72 @@
 import cv2
 import mediapipe as mp
+import time
+import math
 
-mp_pose = mp.solutions.pose
-pose = mp_pose.Pose()
-mp_drawing = mp.solutions.drawing_utils
+class PoseDetector:
+    def __init__(self, mode=False, model_complexity=1, smooth=True,
+                 detectionCon=0.5, trackCon=0.5):
+        self.mode = mode
+        self.model_complexity = model_complexity
+        self.smooth = smooth
+        self.detectionCon = detectionCon
+        self.trackCon = trackCon
 
-cap = cv2.VideoCapture(0)
+        self.mpDraw = mp.solutions.drawing_utils
+        self.mpPose = mp.solutions.pose
+        self.pose = self.mpPose.Pose(
+            static_image_mode=self.mode,
+            model_complexity=self.model_complexity,
+            smooth_landmarks=self.smooth,
+            min_detection_confidence=self.detectionCon,
+            min_tracking_confidence=self.trackCon
+        )
 
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
-    
-    # Convert to RGB
-    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = pose.process(image)
-    
-    # Draw landmarks
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    if results.pose_landmarks:
-        mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-    
-    cv2.imshow('Pose Detection', image)
-    if cv2.waitKey(10) & 0xFF == ord('q'):
-        break
+    def findPose(self, img, draw=True):
+        imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        self.results = self.pose.process(imgRGB)
 
-cap.release()
-cv2.destroyAllWindows()
-def is_squat_correct(landmarks):
-    hip = landmarks[mp_pose.PoseLandmark.LEFT_HIP.value]
-    knee = landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value]
-    ankle = landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value]
+        if self.results.pose_landmarks:
+            if draw:
+                self.mpDraw.draw_landmarks(img, self.results.pose_landmarks,
+                                           self.mpPose.POSE_CONNECTIONS)
+        return img
 
-    angle = calculate_angle(hip, knee, ankle)
-    return 80 <= angle <= 100  # Ideal squat angle
+    def findPosition(self, img, draw=True):
+        lmList = []
+        if self.results.pose_landmarks:
+            for id, lm in enumerate(self.results.pose_landmarks.landmark):
+                h, w, c = img.shape
+                cx, cy = int(lm.x * w), int(lm.y * h)
+                lmList.append((id, cx, cy))
+                if draw:
+                    cv2.circle(img, (cx, cy), 5, (255, 0, 0), cv2.FILLED)
+        return lmList
 
-def calculate_angle(a, b, c):
-    import numpy as np
-    a = np.array([a.x, a.y])
-    b = np.array([b.x, b.y])
-    c = np.array([c.x, c.y])
+    def findAngle(self, img, p1, p2, p3, draw=True):
+        lmList = self.findPosition(img, draw=False)
+        if not lmList:
+            return None
 
-    radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
-    angle = np.abs(radians*180.0/np.pi)
+        # Get coordinates
+        x1, y1 = lmList[p1][1], lmList[p1][2]
+        x2, y2 = lmList[p2][1], lmList[p2][2]
+        x3, y3 = lmList[p3][1], lmList[p3][2]
 
-    if angle > 180.0:
-        angle = 360 - angle
-    return angle
+        # Calculate the angle using arctangent
+        angle = math.degrees(math.atan2(y3 - y2, x3 - x2) -
+                             math.atan2(y1 - y2, x1 - x2))
+        if angle < 0:
+            angle += 360
+        if angle > 180:
+            angle = 360 - angle
+
+        if draw:
+            cv2.line(img, (x1, y1), (x2, y2), (255, 255, 255), 3)
+            cv2.line(img, (x3, y3), (x2, y2), (255, 255, 255), 3)
+            cv2.circle(img, (x1, y1), 10, (0, 0, 255), cv2.FILLED)
+            cv2.circle(img, (x2, y2), 10, (0, 0, 255), cv2.FILLED)
+            cv2.circle(img, (x3, y3), 10, (0, 0, 255), cv2.FILLED)
+            cv2.putText(img, str(int(angle)), (x2 - 50, y2 + 50),
+                        cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
+        return angle
